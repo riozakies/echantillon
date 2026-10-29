@@ -7,8 +7,7 @@ name = "echantillon"
 version = "0.1.0"
 dependencies = [
 "pandas", 
-"numpy",
-"warnings"
+"numpy"
 ]
 
 [tool.setuptools]
