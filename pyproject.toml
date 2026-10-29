@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "echantillon"
+version = "0.1.0"
+dependencies = [
+"pandas", 
+"numpy",
+"matplotlib.pyplot",
+"seaborn", 
+"math",
+"warnings"
+]
+
+[tool.setuptools]
+py-modules = ["echantillon"]
