@@ -8,6 +8,52 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
+# Fonctions utilitaires
+
+## maximun d'un ensemble de valeur d'un dictionaire
+def max_key_dic(dic):
+    if isinstance(dic, dict):
+        max_v=max(dic.values())
+        for key in dic.keys():
+            if float(dic[key])>=max_v:
+                max_v=dic[key]
+                cle=key
+        return cle,max_v
+    else:
+        print("L'entrée n'est pas un dictionnaire")
+        return None,None
+
+## Arrondi d'hamilton
+
+def arrondi_hamilton(dic):
+    if isinstance(dic,dict):
+        taille=int(sum(dic.values()))
+        dic_int={}
+        dic_reste={}
+        for key in dic.keys():
+            dic_int[key]=math.floor(dic[key])
+            dic_reste[key]=dic[key]-dic_int[key]
+        if sum(dic_int.values())==taille:
+            return dic_int
+        elif sum(dic_int.values())<taille:
+            n_reste=taille-sum(dic_int.values())
+            while n_reste>0:
+                key_max,max_dic=max_key_dic(dic_reste)
+                dic_int[key_max]=dic_int[key_max]+1
+                del dic_reste[key_max]
+                n_reste=n_reste-1
+            return dic_int
+        else:
+            n_reste=sum(dic_int.values())-taille
+            while n_reste>0:
+                key_max,max_dic=max_key_dic(dic_reste)
+                dic_int[key_max]=dic_int[key_max]-1
+                del dic_reste[key_max]
+                n_reste=n_reste-1
+            return dic_int
+
+
+
 def equi_inclusion(df,u):
     """
     Cette fonction permet de recuper l'indexe du 
@@ -30,9 +76,6 @@ def select_sys(base_sondage,
     les colonnes identifiant et nom des unités, le pas qui est le random state 
     et la taille de l'échantillon. 
     """
-    import pandas as pd
-    import numpy as np
-    import math
 
     # génération du nombre aléatoire
     nb_alea=np.random.default_rng(seed=random_state).random()
@@ -113,7 +156,8 @@ def select_sys_complete(base_sondage,
     elif  share==0:
         for stra in strates:
             # échantillonnage pour la grappe 
-            dic_strates[stra]=int(round(taille*stra_stat[stra]/stra_stat.sum()))
+            dic_strates[stra]=taille*stra_stat[stra]/stra_stat.sum()
+        dic_strates=arrondi_hamilton(dic_strates)
         total_poids=pd.Series(dic_strates.values()).sum()
         if total_poids<taille:
             print(f"Les strates sont nombreuses et ne permettent pas de repartir assez bien l'echantillon de taille {taille}")
@@ -133,9 +177,10 @@ def select_sys_complete(base_sondage,
             dic_strates[stra]=stra_stat[stra]*base_sondage[base_sondage[strate]==stra][poids].sum()
         total_strates=pd.Series(dic_strates.values()).sum()
         for stra in strates:
-            poids_strate[stra]=int(round(taille*dic_strates[stra]/total_strates))
+            poids_strate[stra]=taille*dic_strates[stra]/total_strates
+        poids_strate=arrondi_hamilton(poids_strate)
         total_poids=pd.Series(poids_strate.values()).sum()
-        if total_poids<0:
+        if total_poids<taille:
             print(f"Les strates sont nombreuses et ne permettent pas de repartir assez bien l'echantillon de taille {taille}")
             return select,df
         else:
