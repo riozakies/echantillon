@@ -27,7 +27,7 @@ def max_key_dic(dic):
 
 def arrondi_hamilton(dic):
     if isinstance(dic,dict):
-        taille=int(sum(dic.values()))
+        taille=int(round(sum(dic.values())))
         dic_int={}
         dic_reste={}
         for key in dic.keys():

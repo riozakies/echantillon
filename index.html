@@ -485,7 +485,8 @@ function afficherResultat() {
   $("strataBox").innerHTML = r.strates
     ? `<h3>Répartition par strate</h3><div class="table-wrap">${tableHTML(r.strates.columns, r.strates.data)}</div>` : "";
   $("sampleTable").innerHTML = tableHTML(r.echantillon.columns, r.echantillon.data);
-  $("logs").innerHTML = r.messages ? `<div class="msg warn">Message du module :\n${esc(r.messages)}</div>` : "";
+  $("logs").innerHTML = r.messages ? `<div class="msg ${r.n ? "warn" : "err"}">Message du module :\n${esc(r.messages)}</div>` : "";
+  $("runMsg").innerHTML = r.n ? "" : `<div class="msg err">Aucune unité n'a été tirée${r.messages ? " : " + esc(r.messages) : "."}</div>`;
   $("step4").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
