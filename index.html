@@ -4,192 +4,201 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tirage d'échantillon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 :root {
-  --bg: #f5f6f8; --card: #ffffff; --text: #1d2330; --muted: #5d6677;
-  --border: #dde1e8; --accent: #1f6feb; --accent-soft: #e8f0fe;
-  --ok: #1a7f37; --warn: #9a6700; --warn-soft: #fff8e1; --err: #cf222e; --err-soft: #ffebe9;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0f1218; --card: #181c24; --text: #e6e9ef; --muted: #9aa3b2;
-    --border: #2c3340; --accent: #58a6ff; --accent-soft: #15233a;
-    --ok: #3fb950; --warn: #d29922; --warn-soft: #2b2410; --err: #ff7b72; --err-soft: #3a1618;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0f1218; --card: #181c24; --text: #e6e9ef; --muted: #9aa3b2;
-  --border: #2c3340; --accent: #58a6ff; --accent-soft: #15233a;
-  --ok: #3fb950; --warn: #d29922; --warn-soft: #2b2410; --err: #ff7b72; --err-soft: #3a1618;
+  --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db; --gray-400: #9ca3af;
+  --gray-500: #6b7280; --gray-700: #374151; --gray-900: #111827;
+  --blue: #2563eb; --blue-dark: #1d4ed8; --switch: #3b5bdb;
+  --red-50: #fef2f2; --red-700: #b91c1c; --yellow-50: #fefce8; --yellow-800: #854d0e;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text);
-  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
-h1 { font-size: 1.6rem; margin: 0 0 4px; }
-.sub { color: var(--muted); margin: 0 0 20px; }
-.status { display: inline-flex; gap: 8px; align-items: center; font-size: .85rem; color: var(--muted);
-  background: var(--card); border: 1px solid var(--border); border-radius: 99px; padding: 4px 12px; margin-bottom: 20px; }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
-.dot.ok { background: var(--ok); } .dot.err { background: var(--err); }
-section.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
-section.card h2 { font-size: 1.1rem; margin: 0 0 12px; display: flex; gap: 10px; align-items: center; }
-.num { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
-  background: var(--accent-soft); color: var(--accent); font-size: .85rem; font-weight: 700; }
-.disabled { opacity: .5; pointer-events: none; }
-label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: 4px; }
-.hint { color: var(--muted); font-size: .82rem; font-weight: 400; margin-top: 3px; }
-input[type=number], input[type=text], select {
-  width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
-  background: var(--bg); color: var(--text); font: inherit; }
-select[multiple] { min-height: 96px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
-.drop { border: 2px dashed var(--border); border-radius: 10px; padding: 22px; text-align: center; cursor: pointer; }
-.drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft); }
-.drop input { display: none; }
-.methods { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
-.method { border: 1px solid var(--border); border-radius: 10px; padding: 12px; cursor: pointer; display: flex; gap: 10px; }
-.method:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
-.method input { margin-top: 4px; }
-.method b { display: block; }
-.method span { color: var(--muted); font-size: .85rem; }
-.field-group { margin-top: 14px; }
+body { margin: 0; background: var(--gray-100); color: var(--gray-900);
+  font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
 .hidden { display: none !important; }
-button { font: inherit; border-radius: 8px; padding: 9px 16px; cursor: pointer; border: 1px solid var(--border);
-  background: var(--card); color: var(--text); }
-button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
-button:disabled { opacity: .5; cursor: not-allowed; }
-.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-.msg { border-radius: 8px; padding: 10px 12px; margin-top: 12px; font-size: .9rem; white-space: pre-wrap; }
-.msg.warn { background: var(--warn-soft); color: var(--warn); }
-.msg.err { background: var(--err-soft); color: var(--err); }
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
-.stat { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
-.stat .v { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-.stat .l { color: var(--muted); font-size: .8rem; }
-.table-wrap { overflow: auto; max-height: 380px; border: 1px solid var(--border); border-radius: 8px; margin-top: 8px; }
-table { border-collapse: collapse; width: 100%; font-size: .82rem; }
-th, td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
-th { position: sticky; top: 0; background: var(--card); }
+main { max-width: 880px; margin: 0 auto; padding: 40px 16px 64px; }
+.card { background: #fff; border-radius: 8px; box-shadow: 0 1px 2px rgb(0 0 0 / .05); border: 1px solid var(--gray-200); }
+.card + .card { margin-top: 24px; }
+.card-head { padding: 20px 24px; border-bottom: 1px solid var(--gray-200); }
+.card-head h1, .card-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.card-body { padding: 24px; }
+.card-foot { padding: 16px 24px; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 10px; align-items: center; }
+
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 28px; }
+.lab { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.lab label { font-size: 15px; font-weight: 500; color: var(--gray-900); }
+.lab .opt { color: var(--gray-400); white-space: nowrap; }
+.info { display: inline-flex; vertical-align: super; margin-left: 4px; color: var(--gray-700); cursor: help; }
+.info svg { width: 13px; height: 13px; }
+
+.input { width: 100%; height: 48px; font: inherit; color: var(--gray-900); background: #fff;
+  border: 1px solid var(--gray-300); border-radius: 8px; padding: 0 14px; }
+.input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue); }
+.input::placeholder { color: var(--gray-400); }
+.input:disabled { background: var(--gray-100); color: var(--gray-400); cursor: not-allowed; }
+select.input { appearance: none; padding-right: 40px; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M7 8l3-3 3 3M7 12l3 3 3-3'/%3e%3c/svg%3e");
+  background-repeat: no-repeat; background-position: right 12px center; background-size: 20px; }
+select.input.vide { color: var(--gray-400); }
+select.input option { color: var(--gray-900); }
+
+.file { position: relative; display: flex; align-items: center; cursor: pointer; color: var(--gray-400); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.file.ok { color: var(--gray-900); }
+.file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.file svg { width: 18px; height: 18px; margin-left: auto; flex-shrink: 0; color: var(--gray-500); }
+.file span { overflow: hidden; text-overflow: ellipsis; }
+.file.over { border-color: var(--blue); }
+
+.switch { position: relative; display: inline-block; width: 58px; height: 32px; margin-top: 2px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch span { position: absolute; inset: 0; background: var(--gray-200); border-radius: 99px; cursor: pointer; transition: background .15s; }
+.switch span::after { content: ""; position: absolute; width: 24px; height: 24px; left: 4px; top: 4px; background: #fff; border-radius: 50%; box-shadow: 0 1px 2px rgb(0 0 0 / .2); transition: transform .15s; }
+.switch input:checked + span { background: var(--switch); }
+.switch input:checked + span::after { transform: translateX(26px); }
+.switch input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; font: inherit; font-weight: 500; padding: 10px 18px; border-radius: 8px; border: 1px solid transparent; cursor: pointer; }
+.btn-primary { background: var(--blue); color: #fff; }
+.btn-primary:hover { background: var(--blue-dark); }
+.btn-white { background: #fff; color: var(--gray-900); border-color: var(--gray-300); }
+.btn-white:hover { background: var(--gray-50); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn svg { width: 16px; height: 16px; }
+.spin { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.alert { border-radius: 8px; padding: 12px 14px; font-size: 14px; white-space: pre-wrap; }
+.alert.err { background: var(--red-50); color: var(--red-700); }
+.alert.warn { background: var(--yellow-50); color: var(--yellow-800); }
+.alert + .alert, .card-body > .alert:not(:first-child) { margin-top: 12px; }
+.res-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.res-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.chiffres { color: var(--gray-500); font-size: 14px; margin-top: 2px; }
+.table-wrap { overflow: auto; max-height: 440px; border: 1px solid var(--gray-200); border-radius: 8px; margin-top: 16px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { position: sticky; top: 0; background: var(--gray-50); text-align: left; font-weight: 500; color: var(--gray-500); padding: 9px 12px; border-bottom: 1px solid var(--gray-200); white-space: nowrap; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--gray-100); white-space: nowrap; color: var(--gray-700); }
 td.n { text-align: right; font-variant-numeric: tabular-nums; }
-h3 { font-size: .95rem; margin: 18px 0 4px; }
-.export { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
-.export .row > div { flex: 1 1 260px; }
-footer { color: var(--muted); font-size: .8rem; text-align: center; margin-top: 24px; }
+tr:last-child td { border-bottom: 0; }
+
+@media (max-width: 680px) {
+  main { padding: 16px 16px 48px; }
+  .grid { grid-template-columns: 1fr; }
+  .card-head, .card-body, .card-foot { padding-left: 16px; padding-right: 16px; }
+}
 </style>
 </head>
 <body>
 <main>
-  <h1>Tirage d'échantillon</h1>
-  <p class="sub">Interface du module Python <code>echantillon</code>. Le calcul se fait dans votre navigateur : aucune donnée n'est envoyée sur un serveur.</p>
-  <div class="status"><span class="dot" id="pyDot"></span><span id="pyStatus">Téléchargement de Python…</span></div>
-  <div id="loadErr"></div>
-  <div class="msg warn hidden" id="loadHelp">Le chargement prend du temps : le premier lancement télécharge environ 25 Mo (Python et pandas), ce qui peut durer plusieurs minutes avec une connexion lente. Les fois suivantes, le navigateur réutilise ces fichiers et c'est beaucoup plus rapide.</div>
+  <form class="card" id="form" novalidate>
+    <div class="card-head"><h1>Tirage d'échantillon</h1></div>
+    <div class="card-body">
+      <div id="loadErr"></div>
+      <div class="grid">
+        <div>
+          <div class="lab"><label for="file">Base de sondage</label></div>
+          <label class="input file" id="fileBox">
+            <input type="file" id="file" accept=".csv,.txt,.xlsx,.xls,.ods">
+            <span id="fileName">Sélectionner un fichier</span>
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13V4m0 0L6.5 7.5M10 4l3.5 3.5M4 13v1.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V13"/></svg>
+          </label>
+        </div>
+        <div>
+          <div class="lab"><label for="sheet">Feuille</label></div>
+          <select class="input vide" id="sheet" disabled><option value="">Sélectionner la feuille</option></select>
+        </div>
 
-  <!-- 1. Base de sondage -->
-  <section class="card">
-    <h2><span class="num">1</span>Base de sondage</h2>
-    <div class="drop" id="drop">
-      <input type="file" id="file" accept=".csv,.txt,.xlsx,.xls,.ods">
-      <b>Cliquez ou déposez un fichier</b>
-      <div class="hint" id="dropHint">Vous pouvez déjà choisir votre fichier : il sera lu dès que Python sera prêt. Les étapes 2 et 3 s'activent une fois le fichier chargé.</div>
+        <div>
+          <div class="lab"><label for="methode">Type d'échantillonnage</label></div>
+          <select class="input" id="methode">
+            <option value="sas">Systématique à probabilités égales</option>
+            <option value="pps">Systématique à probabilités inégales (PPT)</option>
+            <option value="strat">Stratifié</option>
+          </select>
+        </div>
+        <div>
+          <div class="lab"><label for="taille">Taille de l'échantillon</label></div>
+          <input class="input" type="number" id="taille" min="1" step="1" placeholder="n">
+        </div>
+
+        <div data-for="pps">
+          <div class="lab"><label for="poids">Variable de taille</label></div>
+          <select class="input colnum" id="poids" disabled></select>
+        </div>
+
+        <div data-for="strat">
+          <div class="lab"><label for="strate">Variable de stratification</label></div>
+          <select class="input colany" id="strate" disabled></select>
+        </div>
+        <div data-for="strat">
+          <div class="lab"><label for="share">Allocation entre strates</label></div>
+          <select class="input" id="share">
+            <option value="0">Proportionnelle aux effectifs</option>
+            <option value="1">Effectif × somme d'une variable</option>
+          </select>
+        </div>
+        <div data-for="strat" id="allocBox">
+          <div class="lab"><label for="allocVar">Variable d'allocation</label></div>
+          <select class="input colnum" id="allocVar" disabled></select>
+        </div>
+        <div data-for="strat">
+          <div class="lab"><label for="ppsStrate">Probabilités inégales dans les strates</label></div>
+          <label class="switch"><input type="checkbox" id="ppsStrate"><span></span></label>
+        </div>
+        <div data-for="strat" id="poidsUBox">
+          <div class="lab"><label for="poidsU">Variable de taille</label></div>
+          <select class="input colnum" id="poidsU" disabled></select>
+        </div>
+
+        <div>
+          <div class="lab"><label for="graine">Graine aléatoire<span class="info" title="La même graine redonne le même échantillon."><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM9 9a.75.75 0 0 0 0 1.5h.25v2.75a.75.75 0 0 0 1.5 0V9.75A.75.75 0 0 0 10 9H9z"/></svg></span></label></div>
+          <input class="input" type="number" id="graine" step="1" value="42">
+        </div>
+        <div>
+          <div class="lab"><label for="tri">Trier la base par<span class="info" title="En tirage systématique, l'ordre de la base compte."><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM9 9a.75.75 0 0 0 0 1.5h.25v2.75a.75.75 0 0 0 1.5 0V9.75A.75.75 0 0 0 10 9H9z"/></svg></span></label><span class="opt">Facultatif</span></div>
+          <select class="input vide" id="tri" disabled><option value="">Sélectionner la colonne</option></select>
+        </div>
+
+        <div>
+          <div class="lab"><label for="nomFichier">Nom du fichier de sortie</label><span class="opt">Facultatif</span></div>
+          <input class="input" type="text" id="nomFichier" placeholder="echantillon">
+        </div>
+        <div>
+          <div class="lab"><label for="format">Format du fichier de sortie</label></div>
+          <select class="input" id="format">
+            <option value="xlsx">.xlsx</option>
+            <option value="csv">.csv</option>
+            <option value="pdf">.pdf</option>
+          </select>
+        </div>
+      </div>
+      <div id="runMsg"></div>
     </div>
-    <div class="field-group hidden" id="sheetBox">
-      <label for="sheet">Feuille Excel</label>
-      <select id="sheet"></select>
+    <div class="card-foot">
+      <button type="submit" class="btn btn-primary" id="run" disabled><span class="spin"></span>Chargement</button>
     </div>
-    <div id="baseInfo"></div>
+  </form>
+
+  <section class="card hidden" id="resultat">
+    <div class="card-body">
+      <div class="res-head">
+        <div><h2 id="resTitre"></h2><div class="chiffres" id="resChiffres"></div></div>
+        <button type="button" class="btn btn-white" id="dl">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4v9m0 0l-3.5-3.5M10 13l3.5-3.5M4 15.5h12"/></svg>
+          <span id="dlNom">Télécharger</span>
+        </button>
+      </div>
+      <div id="logs"></div>
+      <div class="table-wrap" id="strataTable"></div>
+      <div class="table-wrap" id="sampleTable"></div>
+    </div>
   </section>
-
-  <!-- 2. Méthode -->
-  <section class="card disabled" id="step2">
-    <h2><span class="num">2</span>Type d'échantillonnage</h2>
-    <div class="methods">
-      <label class="method"><input type="radio" name="methode" value="sas" checked>
-        <div><b>Systématique à probabilités égales</b><span>Une unité toutes les N/n lignes, après un départ aléatoire.</span></div></label>
-      <label class="method"><input type="radio" name="methode" value="pps">
-        <div><b>Systématique à probabilités inégales (PPT)</b><span>Probabilité proportionnelle à une variable de taille (ménages, population…).</span></div></label>
-      <label class="method"><input type="radio" name="methode" value="strat">
-        <div><b>Stratifié</b><span>Tirage systématique dans chaque strate, à probabilités égales ou PPT.</span></div></label>
-    </div>
-  </section>
-
-  <!-- 3. Paramètres -->
-  <section class="card disabled" id="step3">
-    <h2><span class="num">3</span>Paramètres et colonnes</h2>
-    <div class="grid">
-      <div><label for="taille">Taille de l'échantillon (n)</label><input type="number" id="taille" min="1" step="1" value="10"></div>
-      <div><label for="graine">Graine aléatoire</label><input type="number" id="graine" step="1" value="42">
-        <div class="hint">Même graine = même échantillon.</div></div>
-    </div>
-
-    <div class="field-group hidden" data-for="pps">
-      <label for="poids">Variable de taille</label><select id="poids" class="numcol"></select>
-      <div class="hint">Colonne numérique ; les unités dont la probabilité dépasse 1 sont prises d'office.</div>
-    </div>
-
-    <div class="hidden" data-for="strat">
-      <div class="grid field-group">
-        <div><label for="strate">Variable de stratification</label><select id="strate" class="anycol"></select></div>
-        <div><label for="share">Allocation entre strates</label>
-          <select id="share">
-            <option value="0">Proportionnelle au nombre d'unités de la strate</option>
-            <option value="1">Proportionnelle à (nombre d'unités × somme d'une variable)</option>
-          </select></div>
-      </div>
-      <div class="field-group hidden" id="allocBox">
-        <label for="allocVar">Variable utilisée pour l'allocation</label><select id="allocVar" class="numcol"></select>
-      </div>
-      <div class="grid field-group">
-        <div><label for="tirageStrate">Tirage dans chaque strate</label>
-          <select id="tirageStrate">
-            <option value="egal">Probabilités égales</option>
-            <option value="pps">Probabilités inégales (PPT)</option>
-          </select></div>
-        <div class="hidden" id="poidsUBox"><label for="poidsU">Variable de taille dans les strates</label><select id="poidsU" class="numcol"></select></div>
-      </div>
-    </div>
-
-    <div class="field-group">
-      <label for="tri">Trier la base avant le tirage <span class="hint">(facultatif, Ctrl/Cmd + clic pour plusieurs)</span></label>
-      <select id="tri" multiple class="anycol-multi"></select>
-      <div class="hint">En tirage systématique, l'ordre de la base compte : trier par zone géographique donne une stratification implicite.</div>
-    </div>
-
-    <div class="row" style="margin-top:18px">
-      <button class="primary" id="run" disabled>Tirer l'échantillon</button>
-    </div>
-    <div id="runMsg"></div>
-  </section>
-
-  <!-- 4. Résultat -->
-  <section class="card hidden" id="step4">
-    <h2><span class="num">4</span>Échantillon</h2>
-    <div class="stats" id="stats"></div>
-    <div id="strataBox"></div>
-    <h3>Unités tirées</h3>
-    <div class="table-wrap" id="sampleTable"></div>
-    <div id="logs"></div>
-
-    <div class="export">
-      <div class="row">
-        <div><label for="nomFichier">Nom du fichier</label>
-          <input type="text" id="nomFichier" value="echantillon">
-          <div class="hint">Sans extension ; elle est ajoutée selon le format.</div></div>
-      </div>
-      <div class="row" style="margin-top:12px">
-        <button id="dlXlsx">Enregistrer en Excel</button>
-        <button id="dlCsv">Enregistrer en CSV</button>
-        <button id="dlPdf">Enregistrer en PDF</button>
-      </div>
-    </div>
-  </section>
-
-  <footer>Module <a href="https://github.com/riozakies/echantillon">riozakies/echantillon</a> exécuté avec Pyodide.</footer>
 </main>
 
 <script type="text/x-python" id="pyGlue">
@@ -311,74 +320,57 @@ def tirer(params_js):
 <script>
 const $ = (id) => document.getElementById(id);
 const MODULE_URLS = ["echantillon.py", "https://raw.githubusercontent.com/riozakies/echantillon/main/echantillon.py"];
-let py = null, pyReady = null, baseLoaded = false, workbook = null, resultat = null;
-
-function setStatus(text, state) {
-  $("pyStatus").textContent = text;
-  $("pyDot").className = "dot" + (state ? " " + state : "");
-}
+const LIBELLES = { sas: "Systématique à probabilités égales", pps: "Systématique PPT", strat: "Stratifié" };
+let py = null, pyOk = false, baseLoaded = false, workbook = null, fichierNom = "", resultat = null;
 
 async function chargerModule() {
   for (const url of MODULE_URLS) {
     try { const r = await fetch(url, { cache: "no-cache" }); if (r.ok) return await r.text(); } catch (e) {}
   }
-  throw new Error("Impossible de récupérer echantillon.py");
+  throw new Error("impossible de récupérer echantillon.py");
 }
 
-const debut = Date.now();
-let etape = "Téléchargement de Python (environ 10 Mo)";
-const minuteur = setInterval(() => {
-  const sec = Math.round((Date.now() - debut) / 1000);
-  setStatus(`${etape}… ${sec} s`);
-  if (sec === 60) $("loadHelp").classList.remove("hidden");
-}, 1000);
-function finChargement() { clearInterval(minuteur); $("loadHelp").classList.add("hidden"); }
-
-pyReady = (async () => {
+const pyReady = (async () => {
   try {
-    if (typeof loadPyodide !== "function") {
-      throw new Error("le script Pyodide n'a pas pu être téléchargé depuis cdn.jsdelivr.net (connexion, pare-feu ou bloqueur de publicité ?)");
-    }
+    if (typeof loadPyodide !== "function") throw new Error("Pyodide n'a pas pu être téléchargé depuis cdn.jsdelivr.net.");
     py = await loadPyodide();
-    etape = "Téléchargement de pandas et numpy (environ 15 Mo)";
     await py.loadPackage(["pandas", "numpy"]);
-    etape = "Chargement du module echantillon";
     py.FS.writeFile("/home/pyodide/echantillon.py", await chargerModule());
     py.runPython("import sys; sys.path.insert(0, '/home/pyodide')");
     py.runPython($("pyGlue").textContent);
-    finChargement();
-    setStatus(`Prêt (chargé en ${Math.round((Date.now() - debut) / 1000)} s)`, "ok");
-    $("dropHint").textContent = "Excel (.xlsx, .xls, .ods) ou CSV (séparateur virgule, point-virgule ou tabulation)";
-    majBouton();
+    pyOk = true;
   } catch (e) {
     console.error(e);
-    finChargement();
-    setStatus("Erreur", "err");
-    $("loadErr").innerHTML = `<div class="msg err">Python n'a pas pu être chargé : ${esc(e.message || e)}\n\nEssayez de recharger la page (Ctrl+F5), avec Chrome ou Firefox à jour, et vérifiez que cdn.jsdelivr.net n'est pas bloqué sur votre réseau.</div>`;
+    $("loadErr").innerHTML = `<div class="alert err" style="margin-bottom:22px">Python n'a pas pu être chargé : ${esc(e.message || e)}</div>`;
   }
+  $("run").innerHTML = "Lancer";
+  majBouton();
 })();
 
 // ---------- Fichier ----------
-const drop = $("drop");
-drop.addEventListener("click", () => $("file").click());
-drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
-drop.addEventListener("dragleave", () => drop.classList.remove("over"));
-drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); if (e.dataTransfer.files[0]) lireFichier(e.dataTransfer.files[0]); });
+const fileBox = $("fileBox");
+fileBox.addEventListener("dragover", (e) => { e.preventDefault(); fileBox.classList.add("over"); });
+fileBox.addEventListener("dragleave", () => fileBox.classList.remove("over"));
+fileBox.addEventListener("drop", (e) => { e.preventDefault(); fileBox.classList.remove("over"); if (e.dataTransfer.files[0]) lireFichier(e.dataTransfer.files[0]); });
 $("file").addEventListener("change", (e) => { if (e.target.files[0]) lireFichier(e.target.files[0]); });
 $("sheet").addEventListener("change", () => chargerFeuille($("sheet").value));
 
 async function lireFichier(f) {
-  $("baseInfo").innerHTML = `<div class="hint" style="margin-top:10px">Lecture de ${esc(f.name)}…</div>`;
-  $("nomFichier").value = "echantillon_" + f.name.replace(/\.[^.]+$/, "");
+  fichierNom = f.name;
+  $("fileName").textContent = f.name; fileBox.classList.add("ok");
+  $("runMsg").innerHTML = "";
+  if (!$("nomFichier").value) $("nomFichier").placeholder = "echantillon_" + f.name.replace(/\.[^.]+$/, "");
   await pyReady;
+  if (!pyOk) return;
   try {
     if (/\.(csv|txt)$/i.test(f.name)) {
-      workbook = null; $("sheetBox").classList.add("hidden");
+      workbook = null;
+      $("sheet").innerHTML = `<option value="">Sélectionner la feuille</option>`; $("sheet").disabled = true; $("sheet").classList.add("vide");
       afficherBase(py.globals.get("charger_csv")(await f.text()));
     } else {
       workbook = XLSX.read(await f.arrayBuffer(), { cellDates: true });
       $("sheet").innerHTML = workbook.SheetNames.map((s) => `<option>${esc(s)}</option>`).join("");
-      $("sheetBox").classList.toggle("hidden", workbook.SheetNames.length < 2);
+      $("sheet").disabled = false; $("sheet").classList.remove("vide");
       chargerFeuille(workbook.SheetNames[0]);
     }
   } catch (e) { erreurBase(e); }
@@ -387,128 +379,128 @@ async function lireFichier(f) {
 function chargerFeuille(nom) {
   try {
     const rows = XLSX.utils.sheet_to_json(workbook.Sheets[nom], { defval: null, raw: true });
-    if (!rows.length) throw new Error("La feuille est vide.");
+    if (!rows.length) throw new Error("la feuille est vide.");
     afficherBase(py.globals.get("charger_records")(JSON.stringify(rows)));
   } catch (e) { erreurBase(e); }
 }
 
 function erreurBase(e) {
   console.error(e); baseLoaded = false; majBouton();
-  $("baseInfo").innerHTML = `<div class="msg err">Impossible de lire le fichier : ${esc(pyErr(e))}</div>`;
+  $("runMsg").innerHTML = `<div class="alert err" style="margin-top:22px">Lecture impossible : ${esc(pyErr(e))}</div>`;
 }
 
-let colonnes = [];
 function afficherBase(json) {
   const info = JSON.parse(json);
-  colonnes = info.colonnes;
   baseLoaded = true;
-  const ap = info.apercu;
-  $("baseInfo").innerHTML = `
-    <div class="stats" style="margin-top:14px">
-      <div class="stat"><div class="v">${fmt(info.n)}</div><div class="l">unités dans la base</div></div>
-      <div class="stat"><div class="v">${colonnes.length}</div><div class="l">colonnes</div></div>
-    </div>
-    <div class="hint">Aperçu des 5 premières lignes</div>
-    <div class="table-wrap">${tableHTML(ap.columns, ap.data)}</div>`;
   const opt = (c) => `<option value="${esc(c.nom)}">${esc(c.nom)}</option>`;
-  const nums = colonnes.filter((c) => c.numerique);
-  document.querySelectorAll("select.numcol").forEach((s) => {
-    s.innerHTML = nums.length ? nums.map(opt).join("") : `<option value="">(aucune colonne numérique)</option>`;
+  const nums = info.colonnes.filter((c) => c.numerique);
+  document.querySelectorAll("select.colnum").forEach((s) => {
+    const prev = s.value;
+    s.innerHTML = nums.map(opt).join("") || `<option value="">Aucune colonne numérique</option>`;
+    if (nums.some((c) => c.nom === prev)) s.value = prev;
+    s.disabled = !nums.length; s.classList.toggle("vide", !nums.length);
   });
-  document.querySelectorAll("select.anycol").forEach((s) => {
-    s.innerHTML = colonnes.map((c) => `<option value="${esc(c.nom)}">${esc(c.nom)} (${c.modalites} modalités)</option>`).join("");
-    const pref = colonnes.find((c) => c.modalites > 1 && c.modalites <= 50);
+  document.querySelectorAll("select.colany").forEach((s) => {
+    s.innerHTML = info.colonnes.map(opt).join("");
+    const pref = info.colonnes.find((c) => c.modalites > 1 && c.modalites <= 50);
     if (pref) s.value = pref.nom;
+    s.disabled = false; s.classList.remove("vide");
   });
-  $("tri").innerHTML = colonnes.map(opt).join("");
+  $("tri").innerHTML = `<option value="">Aucun</option>` + info.colonnes.map(opt).join("");
+  $("tri").disabled = false; $("tri").classList.remove("vide");
   $("taille").max = info.n;
-  ["step2", "step3"].forEach((id) => $(id).classList.remove("disabled"));
-  $("step4").classList.add("hidden");
+  $("taille").placeholder = `n (base : ${info.n.toLocaleString("fr-FR")})`;
   majBouton();
 }
 
 // ---------- Formulaire ----------
-function methode() { return document.querySelector("input[name=methode]:checked").value; }
 function majFormulaire() {
-  const m = methode();
+  const m = $("methode").value;
   document.querySelectorAll("[data-for]").forEach((el) => el.classList.toggle("hidden", el.dataset.for !== m));
-  $("allocBox").classList.toggle("hidden", $("share").value !== "1");
-  $("poidsUBox").classList.toggle("hidden", $("tirageStrate").value !== "pps");
+  if (m === "strat") {
+    $("allocBox").classList.toggle("hidden", $("share").value !== "1");
+    $("poidsUBox").classList.toggle("hidden", !$("ppsStrate").checked);
+  }
 }
-document.querySelectorAll("input[name=methode]").forEach((r) => r.addEventListener("change", majFormulaire));
-$("share").addEventListener("change", majFormulaire);
-$("tirageStrate").addEventListener("change", majFormulaire);
+["methode", "share", "ppsStrate"].forEach((id) => $(id).addEventListener("change", majFormulaire));
+$("tri").addEventListener("change", () => $("tri").classList.toggle("vide", !$("tri").value));
+document.querySelectorAll("select.colnum, select.colany").forEach((s) => { s.innerHTML = `<option value="">Sélectionner la colonne</option>`; s.classList.add("vide"); });
 majFormulaire();
-function majBouton() { $("run").disabled = !(py && baseLoaded && $("pyDot").classList.contains("ok")); }
+function majBouton() { $("run").disabled = !(pyOk && baseLoaded); }
 
-$("run").addEventListener("click", () => {
-  const m = methode();
-  const params = {
+function lireParams() {
+  const m = $("methode").value, strat = m === "strat";
+  return {
     methode: m, taille: parseInt($("taille").value, 10), graine: parseInt($("graine").value, 10) || 0,
-    tri: [...$("tri").selectedOptions].map((o) => o.value),
+    tri: $("tri").value ? [$("tri").value] : [],
     poids: m === "pps" ? $("poids").value : null,
-    strate: m === "strat" ? $("strate").value : null,
-    share: $("share").value, tirageStrate: $("tirageStrate").value,
-    poidsU: m === "strat" && $("tirageStrate").value === "pps" ? $("poidsU").value : null,
-    allocVar: m === "strat" && $("share").value === "1" ? $("allocVar").value : null,
+    strate: strat ? $("strate").value : null,
+    share: $("share").value, tirageStrate: $("ppsStrate").checked ? "pps" : "egal",
+    poidsU: strat && $("ppsStrate").checked ? $("poidsU").value : null,
+    allocVar: strat && $("share").value === "1" ? $("allocVar").value : null,
   };
-  const errs = [];
-  if (!(params.taille >= 1)) errs.push("Indiquez une taille d'échantillon d'au moins 1.");
-  if (m === "pps" && !params.poids) errs.push("Choisissez une variable de taille numérique.");
-  if (m === "strat" && !params.strate) errs.push("Choisissez une variable de stratification.");
-  if (params.tirageStrate === "pps" && m === "strat" && !params.poidsU) errs.push("Choisissez une variable de taille pour les strates.");
-  if (params.share === "1" && m === "strat" && !params.allocVar) errs.push("Choisissez la variable d'allocation.");
-  if (errs.length) { $("runMsg").innerHTML = `<div class="msg err">${errs.map(esc).join("<br>")}</div>`; return; }
+}
+
+$("form").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const p = lireParams(), errs = [];
+  if (!(p.taille >= 1)) errs.push("Indiquez la taille de l'échantillon.");
+  if (p.methode === "pps" && !p.poids) errs.push("Choisissez une variable de taille.");
+  if (p.methode === "strat" && p.tirageStrate === "pps" && !p.poidsU) errs.push("Choisissez une variable de taille.");
+  if (p.methode === "strat" && p.share === "1" && !p.allocVar) errs.push("Choisissez la variable d'allocation.");
+  if (errs.length) { $("runMsg").innerHTML = `<div class="alert err" style="margin-top:22px">${errs.map(esc).join("\n")}</div>`; return; }
   $("runMsg").innerHTML = "";
-  $("run").disabled = true; $("run").textContent = "Tirage en cours…";
+  $("run").disabled = true; $("run").innerHTML = '<span class="spin"></span>Lancer';
   setTimeout(() => {
     try {
-      resultat = JSON.parse(py.globals.get("tirer")(JSON.stringify(params)));
-      resultat.params = params;
+      resultat = JSON.parse(py.globals.get("tirer")(JSON.stringify(p)));
+      resultat.params = p; resultat.date = new Date(); resultat.fichier = fichierNom;
       afficherResultat();
     } catch (e) {
       console.error(e);
-      $("runMsg").innerHTML = `<div class="msg err">Erreur pendant le tirage :\n${esc(pyErr(e))}</div>`;
-    } finally { $("run").textContent = "Tirer l'échantillon"; majBouton(); }
-  }, 20);
+      $("runMsg").innerHTML = `<div class="alert err" style="margin-top:22px">${esc(pyErr(e))}</div>`;
+    } finally { $("run").innerHTML = "Lancer"; majBouton(); }
+  }, 30);
 });
 
-const LIBELLES = { sas: "Systématique à probabilités égales", pps: "Systématique PPT", strat: "Stratifié" };
 function afficherResultat() {
   const r = resultat;
-  $("step4").classList.remove("hidden");
-  $("stats").innerHTML = `
-    <div class="stat"><div class="v">${fmt(r.n)}</div><div class="l">unités tirées</div></div>
-    <div class="stat"><div class="v">${fmt(r.N)}</div><div class="l">unités dans la base</div></div>
-    <div class="stat"><div class="v">${(100 * r.n / r.N).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} %</div><div class="l">taux de sondage global</div></div>
-    <div class="stat"><div class="v">${fmt(Math.round(r.somme_poids))}</div><div class="l">somme des poids</div></div>`;
-  $("strataBox").innerHTML = r.strates
-    ? `<h3>Répartition par strate</h3><div class="table-wrap">${tableHTML(r.strates.columns, r.strates.data)}</div>` : "";
-  $("sampleTable").innerHTML = tableHTML(r.echantillon.columns, r.echantillon.data);
-  $("logs").innerHTML = r.messages ? `<div class="msg ${r.n ? "warn" : "err"}">Message du module :\n${esc(r.messages)}</div>` : "";
-  $("runMsg").innerHTML = r.n ? "" : `<div class="msg err">Aucune unité n'a été tirée${r.messages ? " : " + esc(r.messages) : "."}</div>`;
-  $("step4").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("resultat").classList.remove("hidden");
+  $("resTitre").textContent = `${r.n.toLocaleString("fr-FR")} unités tirées`;
+  $("resChiffres").textContent = `sur ${r.N.toLocaleString("fr-FR")} · taux ${(100 * r.n / r.N).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} % · somme des poids ${Math.round(r.somme_poids).toLocaleString("fr-FR")}`;
+  $("logs").innerHTML = r.messages ? `<div class="alert ${r.n ? "warn" : "err"}" style="margin-top:16px">${esc(r.messages)}</div>` : "";
+  $("dl").disabled = !r.n;
+  $("strataTable").classList.toggle("hidden", !r.strates);
+  if (r.strates) $("strataTable").innerHTML = tableHTML(r.strates.columns, r.strates.data);
+  $("sampleTable").classList.toggle("hidden", !r.n);
+  $("sampleTable").innerHTML = r.n ? tableHTML(r.echantillon.columns, r.echantillon.data) : "";
+  majNom();
+  $("resultat").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // ---------- Export ----------
-function nomFichier(ext) {
-  const n = ($("nomFichier").value || "echantillon").trim().replace(/[\\/:*?"<>|]+/g, "_").replace(/\.(xlsx|csv|pdf)$/i, "");
+function nomFichier() {
+  const ext = $("format").value;
+  const brut = $("nomFichier").value.trim() || $("nomFichier").placeholder || "echantillon";
+  const n = brut.replace(/[\\/:*?"<>|]+/g, "_").replace(/\.(xlsx|csv|pdf)$/i, "");
   return (n || "echantillon") + "." + ext;
 }
-function lignesObjets() {
-  const { columns, data } = resultat.echantillon;
-  return data.map((row) => Object.fromEntries(columns.map((c, i) => [c, row[i]])));
-}
-$("dlXlsx").addEventListener("click", () => {
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(lignesObjets(), { header: resultat.echantillon.columns }), "Echantillon");
-  if (resultat.strates) {
-    const s = resultat.strates;
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([s.columns, ...s.data]), "Strates");
-  }
-  XLSX.writeFile(wb, nomFichier("xlsx"));
+function majNom() { $("dlNom").textContent = nomFichier(); }
+$("nomFichier").addEventListener("input", majNom);
+$("format").addEventListener("change", majNom);
+
+$("dl").addEventListener("click", () => {
+  const ext = $("format").value;
+  if (ext === "xlsx") exportXlsx(); else if (ext === "csv") exportCsv(); else exportPdf();
 });
-$("dlCsv").addEventListener("click", () => {
+function exportXlsx() {
+  const r = resultat, { columns, data } = r.echantillon;
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([columns, ...data]), "Echantillon");
+  if (r.strates) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([r.strates.columns, ...r.strates.data]), "Strates");
+  XLSX.writeFile(wb, nomFichier());
+}
+function exportCsv() {
   const { columns, data } = resultat.echantillon;
   const cell = (v) => {
     if (v === null || v === undefined) return "";
@@ -516,44 +508,35 @@ $("dlCsv").addEventListener("click", () => {
     return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const csv = [columns, ...data].map((r) => r.map(cell).join(";")).join("\r\n");
-  telecharger(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }), nomFichier("csv"));
-});
-$("dlPdf").addEventListener("click", () => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+  a.download = nomFichier(); document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function exportPdf() {
   const { jsPDF } = window.jspdf;
   const r = resultat, p = r.params;
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-  const titre = nomFichier("pdf").replace(/\.pdf$/, "");
-  doc.setFontSize(15); doc.text(titre, 40, 40);
-  doc.setFontSize(9);
+  doc.setFontSize(15); doc.setTextColor(17, 24, 39); doc.text(nomFichier().replace(/\.pdf$/, ""), 40, 40);
+  doc.setFontSize(9); doc.setTextColor(75, 85, 99);
   const lignes = [
     `Méthode : ${LIBELLES[p.methode]}` + (p.poids ? ` (variable de taille : ${p.poids})` : ""),
     p.strate ? `Strates : ${p.strate} ; allocation ${p.share === "1" ? "N_h × somme de " + p.allocVar : "proportionnelle aux effectifs"} ; tirage ${p.tirageStrate === "pps" ? "PPT selon " + p.poidsU : "à probabilités égales"}` : null,
-    `Taille demandée : ${p.taille} ; unités tirées : ${r.n} sur ${r.N} ; graine : ${p.graine}` + (p.tri.length ? ` ; tri : ${p.tri.join(", ")}` : ""),
-    `Édité le ${new Date().toLocaleString("fr-FR")}`,
+    `Base : ${r.fichier} ; taille demandée : ${p.taille} ; unités tirées : ${r.n} sur ${r.N} ; graine : ${p.graine}` + (p.tri.length ? ` ; tri : ${p.tri.join(", ")}` : ""),
+    `Tirage du ${r.date.toLocaleString("fr-FR")}`,
   ].filter(Boolean);
   lignes.forEach((l, i) => doc.text(l, 40, 58 + i * 12));
-  const fmtCell = (v) => v === null || v === undefined ? "" : typeof v === "number" ? v.toLocaleString("fr-FR", { maximumFractionDigits: 4 }) : String(v);
-  doc.autoTable({
-    head: [r.echantillon.columns], body: r.echantillon.data.map((row) => row.map(fmtCell)),
-    startY: 62 + lignes.length * 12, styles: { fontSize: r.echantillon.columns.length > 12 ? 5.5 : 7, cellPadding: 2 },
-    headStyles: { fillColor: [31, 111, 235] }, margin: { left: 30, right: 30 },
-  });
-  if (r.strates) {
-    doc.autoTable({ head: [r.strates.columns], body: r.strates.data.map((row) => row.map(fmtCell)),
-      startY: doc.lastAutoTable.finalY + 20, styles: { fontSize: 8 }, headStyles: { fillColor: [31, 111, 235] },
-      tableWidth: 300, margin: { left: 30 } });
-  }
-  doc.save(nomFichier("pdf"));
-});
-function telecharger(blob, nom) {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob); a.download = nom; document.body.appendChild(a); a.click();
-  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  const fmtCell = (v) => v === null || v === undefined ? "" : typeof v === "number" ? v.toLocaleString("fr-FR", { maximumFractionDigits: 4 }).replace(/ /g, " ") : String(v);
+  const style = { headStyles: { fillColor: [37, 99, 235] }, alternateRowStyles: { fillColor: [249, 250, 251] } };
+  doc.autoTable({ ...style, head: [r.echantillon.columns], body: r.echantillon.data.map((row) => row.map(fmtCell)),
+    startY: 62 + lignes.length * 12, styles: { fontSize: r.echantillon.columns.length > 12 ? 5.5 : 7, cellPadding: 2 }, margin: { left: 30, right: 30 } });
+  if (r.strates) doc.autoTable({ ...style, head: [r.strates.columns], body: r.strates.data.map((row) => row.map(fmtCell)),
+    startY: doc.lastAutoTable.finalY + 20, styles: { fontSize: 8 }, tableWidth: 300, margin: { left: 30 } });
+  doc.save(nomFichier());
 }
 
 // ---------- Utilitaires ----------
 function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
-function fmt(n) { return Number(n).toLocaleString("fr-FR"); }
 function pyErr(e) { const m = String(e.message || e); const lines = m.trim().split("\n"); return lines[lines.length - 1]; }
 function tableHTML(cols, rows) {
   const td = (v) => typeof v === "number" ? `<td class="n">${v.toLocaleString("fr-FR", { maximumFractionDigits: 6 })}</td>` : `<td>${v === null ? "" : esc(v)}</td>`;
