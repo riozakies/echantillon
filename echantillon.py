@@ -54,78 +54,84 @@ def arrondi_hamilton(dic):
 
 
 
-def equi_inclusion(df,u):
+def equi_inclusion(cum, u):
     """
-    Cette fonction permet de recuper l'indexe du 
-    plus petit élement d'une serie iméditement supérieur à une valuer donnée.
+    Renvoie l'index de la première unité dont la probabilité d'inclusion
+    cumulée est >= u (u tombe dans l'intervalle ]cum[j-1], cum[j]]).
+    Fonctionne quel que soit l'index du DataFrame (décalé, mélangé...).
     """
-    db=df-u
-    index=db[db==db[db>=0].min()].index
-    return index[0]
+    pos = np.searchsorted(cum.to_numpy(), u, side="left")
+    pos = min(pos, len(cum) - 1)  # protège contre les erreurs d'arrondi en fin de série
+    return cum.index[pos]
 
 
-def select_sys(base_sondage,
-               taille,
-               poids=None,
-               random_state=42
-              ):
+def select_sys(base_sondage, taille, poids=None, random_state=42):
     """
-    fonction pour selectionnner un échantillon probabiliste suivant la 
-    méthode de tirage systématique.
-    Il est demandé de préciser outre la base de sondage (DataFrame) et 
-    les colonnes identifiant et nom des unités, le pas qui est le random state 
-    et la taille de l'échantillon. 
+    Tirage systématique d'un échantillon de taille `taille`.
+    - poids=None : probabilités égales.
+    - poids="col" : probabilités proportionnelles à la taille (PPS). Les unités
+      dont la probabilité d'inclusion dépasse 1 sont prises d'office (strate
+      exhaustive) et le reste de l'échantillon est tiré parmi les autres.
+    Renvoie (liste des index tirés, DataFrame de l'échantillon).
     """
+    base = base_sondage.copy()  # ne modifie pas le DataFrame de l'utilisateur
+    N = len(base)
+    taille = int(round(taille))
+    u = np.random.default_rng(seed=random_state).random()
+    base["id_sys"] = np.arange(1, N + 1)
 
-    # génération du nombre aléatoire
-    nb_alea=np.random.default_rng(seed=random_state).random()
+    if taille <= 0:
+        return [], base.iloc[0:0]
+    if taille >= N:
+        print(f"Taille demandée ({taille}) >= taille de la base ({N}) : toutes les unités sont retenues.")
+        return list(base.index), base
 
+    # 1er cas : probabilités égales
+    if poids is None:
+        k = N / taille
+        pos = np.floor(k * u + k * np.arange(taille)).astype(int)
+        pos = np.clip(pos, 0, N - 1)  # évite de sortir de la base à cause d'un arrondi
+        df = base.iloc[pos]
+        return list(df.index), df
 
-    # vérifier si le paramètre poids est None. S'il est None c'est un sondage à probabilité égale
-    
-    # 1er cas: probabilité égale:
-    
-    # création des numéros d'ordres
-    base_sondage["id_sys"]=range(1,len(base_sondage)+1)
-    
-    if poids==None:
-        if taille>= len(base_sondage):
-            print("la taille de l'échantillon est supérieur ou égal à la taille de la base de sondage")
-        else:
-            k=len(base_sondage)/taille if taille!=0 else 0
-            select=[]
-            for i in range(taille):
-                select.append(math.floor(k*nb_alea+(i*k))+1)
-            df = base_sondage[base_sondage["id_sys"].isin(select)]
-            return select,df
+    # 2e cas : probabilités inégales (PPS)
+    x = pd.to_numeric(base[poids], errors="coerce").fillna(0)
+    if (x < 0).any():
+        raise ValueError("La variable de poids contient des valeurs négatives.")
 
-    # 2er cas: probabilité inégale:
-    else:
-        c_poids=base_sondage[poids].apply(pd.to_numeric,errors="coerce").sum()
-        for idx,row in base_sondage.iterrows():
-            base_sondage.loc[idx,"poids_relatif"]=base_sondage.loc[idx,poids].sum()/c_poids
-            base_sondage.loc[idx,"p_inclusion"]=base_sondage.loc[idx,"poids_relatif"]*taille
-            base_sondage.loc[idx,"cum_p_inclusion"]=base_sondage.loc[0:idx,"p_inclusion"].sum()
-        
-        p_inclusion=base_sondage["p_inclusion"]>1
-        # vérifier que les probabilié d'inclusion sont toutes inférieur à <1
-        if p_inclusion.sum()==0:
-            select=[nb_alea+i for i in range(taille)]
-            select_cor=[equi_inclusion(base_sondage["cum_p_inclusion"],u) for u in select]
-            df = base_sondage[base_sondage.index.isin(select_cor)]
-            return select_cor,df
-        else:
-            select_cor_p=[next(u for u in p_inclusion if u==False),None]
-            if len(select_cor_p)==taille:
-                df=base_sondage[base_sondage["cum_p_inclusion"].isin(select_cor_p)]
-                return select_cor_p,df
-            else:
-                long_reste=taille-len(select_cor_p)
-                select=[nb_alea+i for i in range(long_reste)]
-                select_cor=[equi_inclusion(base_sondage["cum_p_inclusion"],u) for u in select]
-                df = base_sondage[base_sondage.index.isin(select_cor+select_cor_p)]
-                select=select_cor+select_cor_p
-                return select, df
+    reste = x[x > 0]
+    if len(reste) < taille:
+        print(f"Seulement {len(reste)} unités ont un poids > 0 : impossible d'en tirer {taille}.")
+        taille = len(reste)
+
+    # Unités certaines : on les retire tant qu'il en reste avec p >= 1
+    certains = []
+    n_reste = taille
+    while n_reste > 0:
+        p = n_reste * reste / reste.sum()
+        gros = p[p >= 1].index
+        if len(gros) == 0:
+            break
+        certains.extend(gros)
+        reste = reste.drop(gros)
+        n_reste = taille - len(certains)
+
+    base["p_inclusion"] = 0.0
+    base.loc[certains, "p_inclusion"] = 1.0
+
+    tires = []
+    if n_reste > 0:
+        p = n_reste * reste / reste.sum()
+        cum = p.cumsum()
+        cum = cum * n_reste / cum.iloc[-1]  # garantit que le cumul finit exactement à n_reste
+        base.loc[p.index, "p_inclusion"] = p
+        points = u + np.arange(n_reste)
+        tires = [equi_inclusion(cum, v) for v in points]
+
+    base["cum_p_inclusion"] = base["p_inclusion"].cumsum()
+    select = certains + tires
+    df = base[base.index.isin(select)]
+    return select, df
 ## prise en compte de la stratification dans l'échantillonage
 
 def select_sys_complete(base_sondage, 
