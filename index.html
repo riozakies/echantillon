@@ -86,7 +86,9 @@ footer { color: var(--muted); font-size: .8rem; text-align: center; margin-top: 
 <main>
   <h1>Tirage d'échantillon</h1>
   <p class="sub">Interface du module Python <code>echantillon</code>. Le calcul se fait dans votre navigateur : aucune donnée n'est envoyée sur un serveur.</p>
-  <div class="status"><span class="dot" id="pyDot"></span><span id="pyStatus">Chargement de Python…</span></div>
+  <div class="status"><span class="dot" id="pyDot"></span><span id="pyStatus">Téléchargement de Python…</span></div>
+  <div id="loadErr"></div>
+  <div class="msg warn hidden" id="loadHelp">Le chargement prend du temps : le premier lancement télécharge environ 25 Mo (Python et pandas), ce qui peut durer plusieurs minutes avec une connexion lente. Les fois suivantes, le navigateur réutilise ces fichiers et c'est beaucoup plus rapide.</div>
 
   <!-- 1. Base de sondage -->
   <section class="card">
@@ -94,7 +96,7 @@ footer { color: var(--muted); font-size: .8rem; text-align: center; margin-top: 
     <div class="drop" id="drop">
       <input type="file" id="file" accept=".csv,.txt,.xlsx,.xls,.ods">
       <b>Cliquez ou déposez un fichier</b>
-      <div class="hint">Excel (.xlsx, .xls, .ods) ou CSV (séparateur virgule, point-virgule ou tabulation)</div>
+      <div class="hint" id="dropHint">Vous pouvez déjà choisir votre fichier : il sera lu dès que Python sera prêt. Les étapes 2 et 3 s'activent une fois le fichier chargé.</div>
     </div>
     <div class="field-group hidden" id="sheetBox">
       <label for="sheet">Feuille Excel</label>
@@ -323,20 +325,36 @@ async function chargerModule() {
   throw new Error("Impossible de récupérer echantillon.py");
 }
 
+const debut = Date.now();
+let etape = "Téléchargement de Python (environ 10 Mo)";
+const minuteur = setInterval(() => {
+  const sec = Math.round((Date.now() - debut) / 1000);
+  setStatus(`${etape}… ${sec} s`);
+  if (sec === 60) $("loadHelp").classList.remove("hidden");
+}, 1000);
+function finChargement() { clearInterval(minuteur); $("loadHelp").classList.add("hidden"); }
+
 pyReady = (async () => {
   try {
+    if (typeof loadPyodide !== "function") {
+      throw new Error("le script Pyodide n'a pas pu être téléchargé depuis cdn.jsdelivr.net (connexion, pare-feu ou bloqueur de publicité ?)");
+    }
     py = await loadPyodide();
-    setStatus("Chargement de pandas…");
+    etape = "Téléchargement de pandas et numpy (environ 15 Mo)";
     await py.loadPackage(["pandas", "numpy"]);
-    setStatus("Chargement du module echantillon…");
+    etape = "Chargement du module echantillon";
     py.FS.writeFile("/home/pyodide/echantillon.py", await chargerModule());
     py.runPython("import sys; sys.path.insert(0, '/home/pyodide')");
     py.runPython($("pyGlue").textContent);
-    setStatus("Prêt", "ok");
+    finChargement();
+    setStatus(`Prêt (chargé en ${Math.round((Date.now() - debut) / 1000)} s)`, "ok");
+    $("dropHint").textContent = "Excel (.xlsx, .xls, .ods) ou CSV (séparateur virgule, point-virgule ou tabulation)";
     majBouton();
   } catch (e) {
     console.error(e);
-    setStatus("Erreur de chargement : " + e.message, "err");
+    finChargement();
+    setStatus("Erreur", "err");
+    $("loadErr").innerHTML = `<div class="msg err">Python n'a pas pu être chargé : ${esc(e.message || e)}\n\nEssayez de recharger la page (Ctrl+F5), avec Chrome ou Firefox à jour, et vérifiez que cdn.jsdelivr.net n'est pas bloqué sur votre réseau.</div>`;
   }
 })();
 
