@@ -12,6 +12,7 @@ import echantillon as ech
 `index.html` est une page qui permet de tirer un échantillon sans installer Python :
 charger une base de sondage (Excel ou CSV), choisir la méthode et les colonnes,
 puis enregistrer l'échantillon en Excel, CSV ou PDF.
+Voir le [manuel d'utilisation](MANUEL.md).
 
 Le module est exécuté dans le navigateur avec [Pyodide](https://pyodide.org) :
 les données ne quittent pas l'ordinateur de l'utilisateur.
